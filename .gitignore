@@ -18,6 +18,7 @@ runs/
 outputs/
 checkpoints/
 logs/
+.png
 
 # Jupyter
 .ipynb_checkpoints/
