@@ -1,0 +1,32 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset
+train_data/
+data/
+datasets/
+
+# Model weights
+*.pth
+*.pt
+*.ckpt
+
+# Training outputs
+runs/
+outputs/
+checkpoints/
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Environment
+.env
+
+# OS
+.DS_Store
