@@ -12,7 +12,6 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
     val_acc_list=[]
 
     for epoch in range(epochs):
-        print(f"4. 开始 Epoch {epoch + 1}")
         model.train()
        
         train_loss=0
@@ -20,7 +19,6 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
         train_total=0
         best_val_acc=0
         for batch_idx,(images,labels) in enumerate(train_Loader):
-            print(f"5. 读取到 batch {batch_idx}")
             images=images.to(device)
             labels=labels.to(device)
 
@@ -46,20 +44,20 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
         val_loss=0
         with torch.no_grad():
             model.eval()
+            for images,labels in val_Loader:
+                images=images.to(device)
+                labels=labels.to(device)
 
-            images=images.to(device)
-            labels=labels.to(device)
+                outputs=model.foward(images)
+                loss=criterion(outputs,labels)
 
-            outputs=model.foward(images)
-            loss=criterion(outputs,labels)
-
-            val_total+=labels.size(0)
-            predicted=torch.argmax(outputs,dim=1)
-            val_acc+=(predicted==labels).sum().item()
-            val_loss+=loss.item()
-            if val_acc>best_val_acc:
-                best_val_acc=val_acc
-                torch.save(model.state_dict(),"best_model.pth")
+                val_total+=labels.size(0)
+                predicted=torch.argmax(outputs,dim=1)
+                val_acc+=(predicted==labels).sum().item()
+                val_loss+=loss.item()
+                if val_acc>best_val_acc:
+                    best_val_acc=val_acc
+                    torch.save(model.state_dict(),"best_model.pth")
 
         val_acc/=val_total
         val_loss/=len(val_Loader)
@@ -69,10 +67,10 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
               f"Train Loss:{train_loss:.4f},Train Accuracy:{train_acc:.4f} | "
               f"Val Loss:{val_loss:.4f},Val Accuracy:{val_acc:.4f}")
 
-    figure.CNN_plot(range(1,epochs+1),[train_loss_list,val_loss_list],"Train Loss","Epochs","Loss","train_loss.png")
-    figure.CNN_plot(range(1,epochs+1),[train_acc_list,val_acc_list],"Train Accuracy","Epochs","Accuracy","train_accuracy.png")
+    figure.CNN_plot(range(1,epochs+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","train_loss.png")
+    figure.CNN_plot(range(1,epochs+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","train_accuracy.png")
 
-device=torch.device("cuda:1")
+device=torch.device("cuda")
 model=model.CNN().to(device)
 
 criterion=nn.CrossEntropyLoss()
