@@ -4,12 +4,15 @@ from torch.utils.data import DataLoader
 
 def get_data_loaders(state):
     if state=="train":
-        transform=transforms.Compose([transforms.Resize((128,128)),transforms.ToTensor(),
+        train_transform=transforms.Compose([transforms.RandomResizedCrop(128,scale=(0.8,1)),
                               transforms.RandomHorizontalFlip(),
                               transforms.RandomRotation(10),
+                              transforms.ColorJitter(brightness=0.1,contrast=0.1),
+                               transforms.ToTensor(),
                               transforms.Normalize(mean=[0.485,0.456,0.406],
-                                                   std=[0.229,0.224,0.225])])
-        return DataLoader(datasets.ImageFolder("my_CNN/my_first_CNN/train_data/cats_dogs/train",transform=transform),batch_size=32,shuffle=True)
+                                                   std=[0.229,0.224,0.225]),
+                                                  ])
+        return DataLoader(datasets.ImageFolder("my_CNN/my_first_CNN/train_data/cats_dogs/train",transform=train_transform),batch_size=32,shuffle=True)
     else:
         transform=transforms.Compose([transforms.Resize((128,128)),
                                       transforms.ToTensor(),

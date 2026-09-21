@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-def CNN_plot(X,Y,curve_names,table_name,x_label,y_label,path=None):
+def CNN_plot(X,Y,curve_names,table_name,x_label,y_label,filename):
     plt.figure()
     for i, y in enumerate(Y):
         plt.plot(X, y, label=curve_names[i])
@@ -9,11 +10,11 @@ def CNN_plot(X,Y,curve_names,table_name,x_label,y_label,path=None):
     plt.ylabel(y_label)
     plt.legend()
 
-    save_path='my_CNN/my_first_CNN/result_fig/'+path
-    if path:
-        plt.savefig(save_path)
-    else:
-        plt.savefig(f"{table_name}.png")
+    save_dir=Path(__file__).resolve().parent/"result_fig"
+    save_dir.mkdir(parents=True,exist_ok=True)
+
+    save_path=save_dir/filename
+    plt.savefig(save_path)
 
     plt.show()
     plt.close()

@@ -10,14 +10,16 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
     train_acc_list=[]
     val_loss_list=[]
     val_acc_list=[]
-
+    best_val_loss=float('inf')
+    counter=0
+   
     for epoch in range(epochs):
         model.train()
        
         train_loss=0
         train_acc=0
         train_total=0
-        best_val_acc=0
+       
         for batch_idx,(images,labels) in enumerate(train_Loader):
             images=images.to(device)
             labels=labels.to(device)
@@ -54,21 +56,29 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
                 val_total+=labels.size(0)
                 predicted=torch.argmax(outputs,dim=1)
                 val_acc+=(predicted==labels).sum().item()
-                val_loss+=loss.item()
-                if val_acc>best_val_acc:
-                    best_val_acc=val_acc
-                    torch.save(model.state_dict(),"best_model.pth")
-
+                val_loss+=loss.item()      
+        
         val_acc/=val_total
-        val_loss/=len(val_Loader)
+        val_loss/=len(val_Loader)#len(val_Loader)是批次数量
         val_loss_list.append(val_loss)
         val_acc_list.append(val_acc)
         print(f"Epoch {epoch+1}/{epochs} | "
               f"Train Loss:{train_loss:.4f},Train Accuracy:{train_acc:.4f} | "
               f"Val Loss:{val_loss:.4f},Val Accuracy:{val_acc:.4f}")
+          
+        if val_loss<best_val_loss:
+            best_val_loss=val_loss
+            counter=0
+            torch.save(model.state_dict(),"best_model.pth")
+        else:
+            counter+=1
+            if counter>=5:
+                print(f"Early stopping at epoch {epoch+1}")
+                break
 
-    figure.CNN_plot(range(1,epochs+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","train_loss.png")
-    figure.CNN_plot(range(1,epochs+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","train_accuracy.png")
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","train_loss.png")
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","train_accuracy.png")
+    
 
 device=torch.device("cuda")
 model=model.CNN().to(device)
@@ -76,7 +86,7 @@ model=model.CNN().to(device)
 criterion=nn.CrossEntropyLoss()
 optimizer=torch.optim.Adam(model.parameters(),lr=0.001)
 
-epochs=10
+epochs=30
 train_Loader=dataset.get_data_loaders("train")
 val_Loader=dataset.get_data_loaders("val")
 train(epochs, train_Loader, val_Loader, model, criterion, optimizer, device)
