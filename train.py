@@ -1,9 +1,21 @@
+import ssl
+import urllib.request
+import certifi
 import model
 import torch
 import dataset
 from torch import nn
 import matplotlib.pyplot as plt
 import figure
+import resnet
+from torchvision.models import (resnet18,ResNet18_Weights)
+
+
+def save_checkpoint(epoch,model,optimizer,metrics,results,pth="./checkpointsbest_model.pth"):
+    torch.save({"epoch":epoch,"model_state_dict":model.state_dict(),
+                "optimizer_state_dict":optimizer.state_dict(),
+                **dict(zip(metrics,results))},
+               pth)
 
 def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
     train_loss_list=[]
@@ -25,7 +37,7 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
             labels=labels.to(device)
 
             optimizer.zero_grad()
-            outputs=model.foward(images)
+            outputs=model.forward(images)
             loss=criterion(outputs,labels)
             loss.backward()
             optimizer.step()
@@ -50,7 +62,7 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
                 images=images.to(device)
                 labels=labels.to(device)
 
-                outputs=model.foward(images)
+                outputs=model.forward(images)
                 loss=criterion(outputs,labels)
 
                 val_total+=labels.size(0)
@@ -69,19 +81,26 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
         if val_loss<best_val_loss:
             best_val_loss=val_loss
             counter=0
-            torch.save(model.state_dict(),"best_model.pth")
+            save_checkpoint(model,optimizer,["train_loss","val_loss"],[train_loss,val_loss])
         else:
             counter+=1
             if counter>=5:
                 print(f"Early stopping at epoch {epoch+1}")
                 break
 
-    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","train_loss.png")
-    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","train_accuracy.png")
-    
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","pre_weights_train_loss.png")
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","pre_weights_train_accuracy.png")
 
 device=torch.device("cuda")
-model=model.CNN().to(device)
+# 使用 certifi 证书，避免加载 Windows 证书时报错，同时保留 HTTPS 证书校验。
+ssl_context = ssl.create_default_context(cafile=certifi.where())
+https_handler = urllib.request.HTTPSHandler(context=ssl_context)
+opener = urllib.request.build_opener(https_handler)
+urllib.request.install_opener(opener)
+
+model=resnet18(weights=ResNet18_Weights.DEFAULT)
+model.fc=nn.Linear(model.fc.in_features,2)
+model=model.to(device)
 
 criterion=nn.CrossEntropyLoss()
 optimizer=torch.optim.Adam(model.parameters(),lr=0.001)
