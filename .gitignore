@@ -33,3 +33,5 @@ logs/
 .DS_Store
 
 result_fig/
+
+experiment/

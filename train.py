@@ -11,7 +11,7 @@ import resnet
 from torchvision.models import (resnet18,ResNet18_Weights)
 
 
-def save_checkpoint(epoch,model,optimizer,metrics,results,pth="./checkpointsbest_model.pth"):
+def save_checkpoint(epoch,model,optimizer,metrics,results,pth="./checkpoints/best_model.pth"):
     torch.save({"epoch":epoch,"model_state_dict":model.state_dict(),
                 "optimizer_state_dict":optimizer.state_dict(),
                 **dict(zip(metrics,results))},
@@ -81,15 +81,15 @@ def train(epochs,train_Loader,val_Loader,model,criterion,optimizer,device):
         if val_loss<best_val_loss:
             best_val_loss=val_loss
             counter=0
-            save_checkpoint(model,optimizer,["train_loss","val_loss"],[train_loss,val_loss])
+            save_checkpoint(epoch+1,model,optimizer,["train_loss","val_loss"],[train_loss,val_loss])
         else:
             counter+=1
             if counter>=5:
                 print(f"Early stopping at epoch {epoch+1}")
                 break
 
-    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","pre_weights_train_loss.png")
-    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","pre_weights_train_accuracy.png")
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_loss_list,val_loss_list],["Train","Validation"],"Train and Validation Loss","Epochs","Loss","partial_train_loss.png")
+    figure.CNN_plot(range(1,len(train_loss_list)+1),[train_acc_list,val_acc_list],["Train","Validation"],"Train and Validation Accuracy","Epochs","Accuracy","partial_train_accuracy.png")
 
 device=torch.device("cuda")
 # 使用 certifi 证书，避免加载 Windows 证书时报错，同时保留 HTTPS 证书校验。
@@ -99,13 +99,27 @@ opener = urllib.request.build_opener(https_handler)
 urllib.request.install_opener(opener)
 
 model=resnet18(weights=ResNet18_Weights.DEFAULT)
+
+for param in model.parameters():
+    param.requires_grad=False
+
+for param in model.layer4.parameters():
+    param.requires_grad=True
+
 model.fc=nn.Linear(model.fc.in_features,2)
 model=model.to(device)
 
 criterion=nn.CrossEntropyLoss()
-optimizer=torch.optim.Adam(model.parameters(),lr=0.001)
+optimizer=torch.optim.Adam([{"params":model.layer4.parameters(),"lr":1e-4},
+                            {"params":model.fc.parameters(),"lr":1e-3}])
 
 epochs=30
 train_Loader=dataset.get_data_loaders("train")
 val_Loader=dataset.get_data_loaders("val")
 train(epochs, train_Loader, val_Loader, model, criterion, optimizer, device)
+
+trainable_params=sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params=sum(p.numel() for p in model.parameters())
+
+print("Total params:",total_params)
+print("Trainable parameters",trainable_params)
